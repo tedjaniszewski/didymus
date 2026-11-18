@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Didymus</title>
+<meta name="description" content="Daily memorization of poems and Scripture, with spaced review.">
+<meta name="theme-color" content="#f6efdf">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Didymus">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400;0,500;0,700;1,400;1,500&family=Alegreya+SC:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="date" id="date"></div>
+    <h1>Didymus</h1>
+    <nav class="tabs" role="tablist">
+      <button class="tab" role="tab" data-view="poem" aria-selected="false">Poem</button>
+      <button class="tab" role="tab" data-view="verse" aria-selected="false">Verse</button>
+    </nav>
+    <div class="sublinks practice">
+      <a class="seg" href="#bank" data-view="bank">Memory bank <span id="bankCount"></span></a>
+      <a class="seg" href="#queue" data-view="queue">Queue</a>
+      <a class="seg" href="#review" data-view="review">Review <span id="dueBadge"></span></a>
+    </div>
+  </header>
+  <main id="main"><noscript><p class="note">Didymus needs JavaScript.</p></noscript></main>
+  <footer class="foot"><a href="#backup" data-view="backup">Backup &amp; settings</a><span id="backupDot"></span></footer>
+</div>
+<input id="keyIn" type="text" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" aria-label="Type the first letter of each word" enterkeyhint="next">
+<div class="toast" id="toast" role="status"><span id="toastMsg"></span><button id="toastUndo">Undo</button></div>
+<script src="library.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
