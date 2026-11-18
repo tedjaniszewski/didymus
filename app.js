@@ -90,6 +90,8 @@
   const byId = id => byIdIn(state, id);
   const kindOf = id => { const it = byId(id); return it ? (it.kind || (it.lines ? 'poem' : 'verse')) : null; };
   const isCustom = id => /^u-/.test(id);
+  const isBuiltin = id => KINDS.some(k => builtin[k].some(x => x.id === id));
+  const isOverridden = id => isBuiltin(id) && KINDS.some(k => (state.custom[k] || []).some(x => x.id === id));
   const nameOf = id => { const it = byId(id); return it ? (it.title || it.ref) : id; };
   const subOf = it => it.kind === 'poem' || it.lines ? (it.author || '') : [it.topic, it.translation].filter(Boolean).join(' · ');
 
@@ -311,7 +313,8 @@
       if (!it || !b) { bankDetail = null; return viewBank(); }
       return '<a class="back" data-act="bankback">‹ Memory bank</a>' + itemHead(it) + itemBody(it, 'full', false)
         + '<div class="src">Memorized ' + fmtDate(b.memorizedOn) + ' · reviewed ' + (b.reps || 0) + '× · next review ' + fmtDate(b.due) + '</div>'
-        + '<div class="actions"><button class="btn quiet" data-act="unbank" data-id="' + esc(bankDetail) + '">Return to the queue to relearn</button></div>';
+        + '<div class="actions"><button class="btn small ghost" data-act="edit" data-id="' + esc(bankDetail) + '">Edit text</button>'
+        + '<button class="btn quiet" data-act="unbank" data-id="' + esc(bankDetail) + '">Return to the queue to relearn</button></div>';
     }
     const ent = Object.entries(state.bank).filter(([id]) => byId(id));
     if (!ent.length) return '<p class="note">Nothing here yet. When you mark a poem or passage memorized, it comes to rest here.</p>';
@@ -373,15 +376,15 @@
       const memorized = Object.values(state.bank).filter(b => b.kind === kind).length;
       let html = '<div class="qsec"><h2>' + label + ' <small>' + q.length + ' waiting · ' + memorized + ' memorized</small></h2>';
       if (cur) html += '<div class="qrow now"><div class="qtxt"><div class="rname"><span class="tag">Now</span>' + esc(cur.title || cur.ref) + '</div><div class="rsub">'
-        + esc(subOf(cur)) + '</div></div>' + (isCustom(cur.id) ? '<button class="ib" data-act="edit" data-id="' + esc(cur.id) + '" aria-label="Edit">✎</button>' : '') + '</div>';
+        + esc(subOf(cur)) + '</div></div>' + '<button class="ib txt" data-act="edit" data-id="' + esc(cur.id) + '" aria-label="Edit">edit</button>' + '</div>';
       q.forEach((id, i) => {
         if (i >= Q_SHOW && !qExpanded[kind]) return;
         const it = byId(id); if (!it) return;
         html += '<div class="qrow"><span class="qnum">' + (i + 1) + '</span><div class="qtxt"><div class="rname">' + esc(it.title || it.ref) + '</div><div class="rsub">' + esc(subOf(it)) + '</div></div>'
+          + '<button class="ib txt" data-act="edit" data-id="' + esc(id) + '" aria-label="Edit">edit</button>'
           + '<button class="ib" data-act="qup" data-kind="' + kind + '" data-i="' + i + '"' + (i ? '' : ' disabled') + ' aria-label="Move up">↑</button>'
           + '<button class="ib" data-act="qdown" data-kind="' + kind + '" data-i="' + i + '"' + (i < q.length - 1 ? '' : ' disabled') + ' aria-label="Move down">↓</button>'
           + '<button class="ib txt" data-act="qnow" data-kind="' + kind + '" data-i="' + i + '" aria-label="Study this now">now</button>'
-          + (isCustom(id) ? '<button class="ib" data-act="edit" data-id="' + esc(id) + '" aria-label="Edit">✎</button>' : '')
           + '<button class="ib" data-act="qremove" data-kind="' + kind + '" data-i="' + i + '" aria-label="Remove">✕</button></div>';
       });
       if (!q.length) html += '<p class="muted" style="text-align:center;font-style:italic">Nothing waiting.</p>';
@@ -463,6 +466,11 @@
     return d;
   }
   function itemFromDraft(d){
+    const keep = {};
+    if (d.id) { const orig = byId(d.id) || {}; ['series', 'seriesName', 'gap'].forEach(k => { if (orig[k] !== undefined) keep[k] = orig[k]; }); }
+    return Object.assign(itemFromDraftBare(d), keep);
+  }
+  function itemFromDraftBare(d){
     if (d.kind === 'poem') {
       return {id: d.id || uid(), kind: 'poem', title: d.title.trim(), author: d.author.trim(), firstPub: d.firstPub.trim() || undefined,
               source: d.source.trim() || undefined, lines: parseLines(d.text)};
@@ -505,6 +513,10 @@
     if (!editing) html += '<div class="fld"><label for="f-place">Place in queue</label><select class="tx" id="f-place" name="place">'
       + [['end', 'At the end of the queue'], ['next', 'Next in line'], ['now', 'Start it today (current item returns to the front of the queue)']]
         .map(([v, l]) => '<option value="' + v + '"' + (d.place === v ? ' selected' : '') + '>' + l + '</option>').join('') + '</select></div>';
+    if (editing && isBuiltin(d.id)) html += '<p class="hint" style="text-align:center;margin:0">'
+      + (isOverridden(d.id) ? 'You’ve edited this from the built-in library. ' : 'This comes from the built-in library. ')
+      + 'Your changes are saved on this device'
+      + (isOverridden(d.id) ? '; <a href="#" data-act="revert" data-id="' + esc(d.id) + '">restore the original text</a>.' : ', and the original can always be restored.') + '</p>';
     html += (draftErr ? '<p class="err">' + esc(draftErr) + '</p>' : '')
       + '<div class="actions" style="margin-top:6px"><button class="btn" type="submit">' + (editing ? 'Save changes' : 'Add to queue') + '</button>'
       + (editing ? '<button class="btn quiet" type="button" data-act="cancelEdit">Cancel</button>' : '') + '</div></form>'
@@ -680,6 +692,12 @@
       case 'qrestore': { const id = el.dataset.id; commit(s => { s.queue[kindOf(id)].push(id); }); break; }
       case 'edit': { const it = byId(el.dataset.id); if (it) { draft = draftFrom(it); draftErr = ''; go('add'); } break; }
       case 'cancelEdit': draft = null; go('queue'); break;
+      case 'revert': {
+        e.preventDefault();
+        const id = el.dataset.id;
+        commit(s => { KINDS.forEach(k => { s.custom[k] = s.custom[k].filter(x => x.id !== id); }); });
+        draft = draftFrom(byId(id)); draftErr = ''; render(); toast('Original text restored.'); break;
+      }
       case 'dkind': { const keep = draft && draft.text; draft = newDraft(kind); if (keep) draft.text = keep; render(); break; }
       case 'dpoetry': draft.poetry = el.dataset.v === '1'; render(); break;
       // backup
