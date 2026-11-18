@@ -42,6 +42,8 @@ In the app, go to **Queue → + Add a poem / + Add a passage**.
 - **Poems:** one line of the poem per line. Indent with spaces or a tab (4 spaces is one level). Leave a blank line between stanzas.
 - **Scripture:** choose *Prose* or *Poetry (lines)*. Verse numbers are optional; write them in brackets, as in `[6] Have no anxiety … [7] And the peace …`. Type `LORD` in capitals to get small capitals.
 
+Every item in the queue, and every item in the memory bank, has an **edit** button. Edits to built-in poems and verses are saved on your device only, and the original text can be restored from the edit screen.
+
 To change the *built-in* library that every new visitor starts with, edit `library.js`. Its format is described at the top of the file. New items you add there show up at the end of existing users' queues. Items you remove don't disappear from anyone's memory bank.
 
 ## Spaced repetition
